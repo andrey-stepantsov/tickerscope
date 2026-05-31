@@ -24,7 +24,7 @@ COMPANIES = {
 }
 BENCHES = {"SPX": "^GSPC", "DJIA": "^DJI"}
 
-interval_arg = "m"
+interval_arg = "d"
 if "--weekly" in sys.argv: interval_arg = "w"
 if "--daily"  in sys.argv: interval_arg = "d"
 
