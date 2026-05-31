@@ -296,10 +296,10 @@ function buildSynthetic(){
 }
 function buildReal(){
   // For short horizons (1M, 3M) use daily bars if available; weekly otherwise.
-  const useDailyRanges={\"1M\":true,\"3M\":true};
+  const useDailyRanges={"1M":true,"3M":true};
   const wantDaily=useDailyRanges[state.range]&&isDual(state.real)&&state.real.daily;
   const R=wantDaily?state.real.daily:(isDual(state.real)?state.real.weekly:state.real);
-  state.realRes=wantDaily?\"daily\":\"weekly\";
+  state.realRes=wantDaily?"daily":"weekly";
   const companies={},benches={},ohlc={};
   UNIVERSE.forEach(c=>{if(Array.isArray(R.series[c.tk])){companies[c.tk]=R.series[c.tk];
     ohlc[c.tk]=(R.ohlc&&R.ohlc[c.tk])?barsFromArrays(R.ohlc[c.tk]):ohlcFromClose(R.series[c.tk],null,false);}});
