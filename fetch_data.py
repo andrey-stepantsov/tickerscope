@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Fetch real, coarse (monthly by default) price history into data.json,
-which index.html loads when present. Keyless source: Stooq CSV endpoint.
+which index.html loads when present. Source: Yahoo Finance via yfinance.
 
 Now bakes OHLC (open/high/low/close) so the widget's candlestick view has
 real wicks. Closes are also stored separately for the line views.
@@ -11,32 +11,44 @@ Usage:
     python3 fetch_data.py --weekly
     python3 fetch_data.py --daily
 """
-import json, sys, urllib.request, urllib.parse, datetime
+import json, sys, datetime
+
+try:
+    import yfinance as yf
+except ImportError:
+    sys.exit("yfinance not installed — run: pip install yfinance")
 
 COMPANIES = {
-    "INTC": "intc.us", "NVDA": "nvda.us", "NOK": "nok.us",
-    "MSFT": "msft.us", "TSLA": "tsla.us", "GOOGL": "googl.us", "AMD": "amd.us",
+    "INTC": "INTC", "NVDA": "NVDA", "NOK":  "NOK",
+    "MSFT": "MSFT", "TSLA": "TSLA", "GOOGL": "GOOGL", "AMD": "AMD",
 }
-BENCHES = {"SPX": "^spx", "DJIA": "^dji"}
+BENCHES = {"SPX": "^GSPC", "DJIA": "^DJI"}
 
-interval = "m"
-if "--weekly" in sys.argv: interval = "w"
-if "--daily"  in sys.argv: interval = "d"
+interval_arg = "m"
+if "--weekly" in sys.argv: interval_arg = "w"
+if "--daily"  in sys.argv: interval_arg = "d"
 
-def fetch(symbol):
-    """Return {date: {o,h,l,c}} from Stooq CSV (Date,Open,High,Low,Close,Volume)."""
-    url = "https://stooq.com/q/d/l/?s=" + urllib.parse.quote(symbol) + "&i=" + interval
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        text = r.read().decode("utf-8", "replace")
+YF_INTERVAL = {"m": "1mo", "w": "1wk", "d": "1d"}[interval_arg]
+INTERVAL_NAME = {"m": "monthly", "w": "weekly", "d": "daily"}[interval_arg]
+
+def fetch(ticker_sym):
+    """Return {date_str: {o,h,l,c}} from Yahoo Finance."""
+    t = yf.Ticker(ticker_sym)
+    hist = t.history(period="max", interval=YF_INTERVAL, auto_adjust=True)
+    if hist.empty:
+        return {}
     out = {}
-    for line in text.strip().splitlines()[1:]:
-        p = line.split(",")
-        if len(p) < 5:
-            continue
+    for ts, row in hist.iterrows():
+        # ts is a Timestamp; format as YYYY-MM-DD
+        date_str = ts.strftime("%Y-%m-%d")
         try:
-            out[p[0]] = {"o": float(p[1]), "h": float(p[2]), "l": float(p[3]), "c": float(p[4])}
-        except ValueError:
+            out[date_str] = {
+                "o": round(float(row["Open"]),  4),
+                "h": round(float(row["High"]),  4),
+                "l": round(float(row["Low"]),   4),
+                "c": round(float(row["Close"]), 4),
+            }
+        except (KeyError, ValueError):
             continue
     return out
 
@@ -80,8 +92,8 @@ def main():
 
     data = {
         "meta": {
-            "source": "stooq.com",
-            "interval": {"m": "monthly", "w": "weekly", "d": "daily"}[interval],
+            "source": "finance.yahoo.com",
+            "interval": INTERVAL_NAME,
             "generated": datetime.datetime.utcnow().isoformat() + "Z",
             "start": master[0], "end": master[-1], "ohlc": True,
         },
