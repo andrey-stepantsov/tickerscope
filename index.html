@@ -284,6 +284,24 @@ function ohlcFromClose(closes,rng,wicks){
 function barsFromArrays(a){const L=a.c.length,b=new Array(L);
   for(let i=0;i<L;i++)b[i]={o:a.o[i],h:a.h[i],l:a.l[i],c:a.c[i]};return b;}
 
+function compositeOhlc(ohlcMap,tickers){
+  // Equal-weight average of indexed OHLC bars (each company indexed to its own bar[0].c=100)
+  const arrays=tickers.map(tk=>ohlcMap[tk]).filter(a=>Array.isArray(a)&&a.length>1);
+  if(!arrays.length)return [];
+  const L=arrays[0].length,out=new Array(L);
+  for(let i=0;i<L;i++){
+    let so=0,sh=0,sl=0,sc=0,cnt=0;
+    for(const bars of arrays){
+      if(bars.length!==L)continue;
+      const b=bars[i],b0=bars[0];
+      if(!b||b.c==null||!b0||b0.c==null||b0.c===0)continue;
+      const base=b0.c;
+      so+=b.o/base*100;sh+=b.h/base*100;sl+=b.l/base*100;sc+=b.c/base*100;cnt++;
+    }
+    out[i]=cnt?{o:so/cnt,h:sh/cnt,l:sl/cnt,c:sc/cnt}:null;
+  }
+  return out;
+}
 function buildSynthetic(){
   const days=state.days,companies={},benches={},ohlc={};
   UNIVERSE.forEach((c,idx)=>{const cl=gbmPath(mulberry32(state.seed*1000+idx*97+13),c.px,c.mu*state.driftMul,c.sig*state.volMul,days);
@@ -292,6 +310,7 @@ function buildSynthetic(){
     benches[c.tk]=cl;ohlc[c.tk]=ohlcFromClose(cl,mulberry32(state.seed*1000+770+idx),true);});
   const hbm=gbmPath(mulberry32(state.seed*1000+911),HBM.px,HBM.mu*state.driftMul,HBM.sig*state.volMul,days);
   ohlc.HBM=ohlcFromClose(hbm,mulberry32(state.seed*1000+912),true);
+  ohlc.CMP=compositeOhlc(ohlc,UNIVERSE.map(c=>c.tk));
   return {n:days,dates:null,companies,benches,hbm,ohlc};
 }
 function buildReal(){
@@ -308,6 +327,7 @@ function buildReal(){
   const days=R.dates.length-1;
   const hbm=gbmPath(mulberry32(4242),HBM.px,HBM.mu,HBM.sig,days);
   ohlc.HBM=ohlcFromClose(hbm,mulberry32(4243),true);
+  ohlc.CMP=compositeOhlc(ohlc,UNIVERSE.map(c=>c.tk));
   return {n:days,dates:R.dates,companies,benches,hbm,ohlc};
 }
 function rebuild(){ current=(state.mode==="real"&&state.real)?buildReal():buildSynthetic(); render(); }
@@ -417,8 +437,10 @@ function renderLines(W){
 
 function renderCandles(W){
   const view=state.view;
-  let key=state.candleKey; if(!W.ohlc[key]){const av=Object.keys(W.ohlc);key=av[0];state.candleKey=key;}
-  const bars=W.ohlc[key]||[], n=Math.max(0,bars.length-1), base=bars.length?bars[0].c:1;
+  let key=state.agg?"CMP":state.candleKey;
+  if(!W.ohlc[key]||!W.ohlc[key].length){const av=Object.keys(W.ohlc).filter(k=>W.ohlc[k]&&W.ohlc[k].length);key=av[0]||"CMP";}
+  if(!state.agg)state.candleKey=key;
+  const bars=(W.ohlc[key]||[]).filter(b=>b!=null), n=Math.max(0,bars.length-1), base=bars.length?bars[0].c:1;
   const tv=v=> view==="raw"? v : (view==="log"? Math.log10(v/base*100) : v/base*100);
   let yMin=Infinity,yMax=-Infinity;
   bars.forEach(b=>{if(!b||b.h==null||b.l==null)return;const hi=tv(b.h),lo=tv(b.l);if(isFinite(hi)&&hi>yMax)yMax=hi;if(isFinite(lo)&&lo<yMin)yMin=lo;});
@@ -574,12 +596,12 @@ const rawBtn=document.querySelector('#viewSeg button[data-view="raw"]');
 function setView(v){state.view=v;document.querySelectorAll("#viewSeg button").forEach(x=>x.classList.toggle("on",x.dataset.view===v));}
 function setChartTitle(){
   document.getElementById("chartTitle").textContent =
-    state.chart==="candles" ? (state.candleKey+" · candlesticks")
+    state.chart==="candles" ? (state.agg ? "Companies composite · candlesticks" : (state.candleKey+" · candlesticks"))
     : state.agg ? "Basket vs market vs HBM · combined" : "Cumulative performance";
 }
 function syncControls(){
   const candle=state.chart==="candles";
-  document.querySelectorAll("#aggSeg button").forEach(b=>b.disabled=candle);
+  // aggSeg intentionally enabled in candle mode — CMP composite candle is supported
   rawBtn.disabled=(!candle&&state.agg);
   if(rawBtn.disabled&&state.view==="raw")setView("norm");
   setChartTitle();
