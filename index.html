@@ -121,7 +121,7 @@
     <div class="brand">
       <div class="eyebrow">Markets Lab · Browser-side</div>
       <h1>The Index <em>Lab</em></h1>
-      <p>Seven equities versus the S&amp;P 500, the Dow, and a synthetic HBM-spot index. Overlay lines or view a single instrument as candlesticks; combine the basket into one equal-weight index; scrub horizons from 1M to 3Y. Real monthly history from <code>data.json</code> when present, else a synthetic (GBM) sandbox.</p>
+      <p>Seven equities versus the S&amp;P 500, the Dow, and a synthetic HBM-spot index. Overlay lines or view a single instrument as candlesticks; combine the basket into one equal-weight index; scrub horizons from 1M to 3Y. Real daily/weekly history from <code>data.json</code> when present, else a synthetic (GBM) sandbox.</p>
     </div>
     <div class="ticker-clock">
       <div><b id="clock">—</b></div>
@@ -211,7 +211,7 @@
   </div>
 
   <footer>
-    <div class="disclaim">Real equity/index data via Stooq (baked into data.json, incl. OHLC); synthetic series via GBM. HBM is always synthetic — no free real feed exists. Synthetic candles derive wicks from the close path; real candles use baked OHLC. Combined lines are equal-weight, indexed to 100; horizon views re-base to the window start. Educational only — not investment advice.</div>
+    <div class="disclaim">Real equity/index data via Yahoo Finance (baked into data.json, incl. OHLC); daily bars for 1M–3M views, weekly bars for 6M–Max. Synthetic series via GBM. HBM is always synthetic — no free real feed exists. Synthetic candles derive wicks from the close path; real candles use baked OHLC. Combined lines are equal-weight, indexed to 100; horizon views re-base to the window start. Educational only — not investment advice.</div>
     <div style="text-align:right">
       <div id="dataStamp">—</div>
       <div style="color:var(--ink-faint);opacity:.7">v1.6 · zero runtime deps · GitHub Pages-ready</div>
@@ -295,7 +295,12 @@ function buildSynthetic(){
   return {n:days,dates:null,companies,benches,hbm,ohlc};
 }
 function buildReal(){
-  const R=state.real,companies={},benches={},ohlc={};
+  // For short horizons (1M, 3M) use daily bars if available; weekly otherwise.
+  const useDailyRanges={\"1M\":true,\"3M\":true};
+  const wantDaily=useDailyRanges[state.range]&&isDual(state.real)&&state.real.daily;
+  const R=wantDaily?state.real.daily:(isDual(state.real)?state.real.weekly:state.real);
+  state.realRes=wantDaily?\"daily\":\"weekly\";
+  const companies={},benches={},ohlc={};
   UNIVERSE.forEach(c=>{if(Array.isArray(R.series[c.tk])){companies[c.tk]=R.series[c.tk];
     ohlc[c.tk]=(R.ohlc&&R.ohlc[c.tk])?barsFromArrays(R.ohlc[c.tk]):ohlcFromClose(R.series[c.tk],null,false);}});
   BENCHES.forEach(c=>{if(Array.isArray(R.benches[c.tk])){benches[c.tk]=R.benches[c.tk];
@@ -310,7 +315,10 @@ function rebuild(){ current=(state.mode==="real"&&state.real)?buildReal():buildS
 // ---- horizon window ----
 function windowPointCount(){
   if(state.range==="Max")return Infinity;
-  const perMonth=current.dates?1:21;
+  let perMonth;
+  if(!current.dates){perMonth=21;}                          // synthetic
+  else if(state.realRes==="daily"){perMonth=21;}            // ~21 trading days/month
+  else{perMonth=4.33;}                                      // ~4.33 weeks/month
   return Math.max(2,RANGE_MONTHS[state.range]*perMonth);
 }
 function windowedCurrent(){
@@ -576,7 +584,7 @@ function syncControls(){
 }
 document.getElementById("viewSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b||b.disabled)return;setView(b.dataset.view);render();});
 document.getElementById("rangeSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
-  state.range=b.dataset.range;document.querySelectorAll("#rangeSeg button").forEach(x=>x.classList.toggle("on",x===b));render();});
+  state.range=b.dataset.range;document.querySelectorAll("#rangeSeg button").forEach(x=>x.classList.toggle("on",x===b));rebuild();});
 document.getElementById("aggSeg").addEventListener("click",e=>{
   const b=e.target.closest("button");if(!b||b.disabled)return;
   state.agg=(b.dataset.agg==="combined");
@@ -601,8 +609,9 @@ function applyMode(){
   if(real){
     const m=state.real.meta;
     statusEl.textContent="REAL · "+m.source;
-    modeNote.textContent=m.interval+" "+(m.ohlc?"OHLC":"closes")+" · "+m.start+" → "+m.end+" · sim off · HBM synthetic";
-    document.getElementById("dataStamp").textContent="Data as of "+fmtStamp(m.generated)+" · "+m.interval;
+    const resLabel=state.realRes||m.interval;
+    modeNote.textContent=resLabel+" OHLC · "+m.start+" → "+m.end+" · sim off · HBM synthetic";
+    document.getElementById("dataStamp").textContent="Data as of "+fmtStamp(m.generated)+" · "+resLabel;
   }else{
     statusEl.textContent="SYNTHETIC · seeded RNG";
     modeNote.textContent=state.real?"Geometric Brownian motion sandbox":"data.json not found — synthetic only";
@@ -615,6 +624,7 @@ function tick(){const d=new Date();document.getElementById("clock").textContent=
 setInterval(tick,1000);tick();
 
 function validReal(d){return d&&Array.isArray(d.dates)&&d.dates.length>1&&d.series&&d.benches;}
+function isDual(d){return d&&d.weekly&&Array.isArray(d.weekly.dates);}
 function init(){syncLabels();syncControls();buildLegend();applyMode();rebuild();}
 fetch("data.json",{cache:"no-store"})
   .then(r=>{if(!r.ok)throw new Error("no data.json");return r.json();})

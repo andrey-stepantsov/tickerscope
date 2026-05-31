@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """
-Fetch real, coarse (monthly by default) price history into data.json,
-which index.html loads when present. Source: Yahoo Finance via yfinance.
+Fetch real price history into data.json.
+Source: Yahoo Finance via yfinance.
 
-Now bakes OHLC (open/high/low/close) so the widget's candlestick view has
-real wicks. Closes are also stored separately for the line views.
+Bakes TWO resolutions so the widget can pick the right one per horizon:
+  daily  — last 6 months of 1-day bars  (for 1M and 3M views)
+  weekly — full history of 1-week bars  (for 6M, 1Y, 2Y, 3Y, Max views)
+
+Each resolution has its own dates / series / ohlc / benches / benchOhlc.
+Top-level meta reflects the weekly dataset (widest range).
 
 Usage:
-    python3 fetch_data.py            # monthly (default)
-    python3 fetch_data.py --weekly
-    python3 fetch_data.py --daily
+    python3 fetch_data.py
 """
 import json, sys, datetime
 
@@ -24,22 +26,14 @@ COMPANIES = {
 }
 BENCHES = {"SPX": "^GSPC", "DJIA": "^DJI"}
 
-interval_arg = "d"
-if "--weekly" in sys.argv: interval_arg = "w"
-if "--daily"  in sys.argv: interval_arg = "d"
-
-YF_INTERVAL = {"m": "1mo", "w": "1wk", "d": "1d"}[interval_arg]
-INTERVAL_NAME = {"m": "monthly", "w": "weekly", "d": "daily"}[interval_arg]
-
-def fetch(ticker_sym):
+def fetch(ticker_sym, yf_interval, period):
     """Return {date_str: {o,h,l,c}} from Yahoo Finance."""
     t = yf.Ticker(ticker_sym)
-    hist = t.history(period="max", interval=YF_INTERVAL, auto_adjust=True)
+    hist = t.history(period=period, interval=yf_interval, auto_adjust=True)
     if hist.empty:
         return {}
     out = {}
     for ts, row in hist.iterrows():
-        # ts is a Timestamp; format as YYYY-MM-DD
         date_str = ts.strftime("%Y-%m-%d")
         try:
             out[date_str] = {
@@ -52,20 +46,21 @@ def fetch(ticker_sym):
             continue
     return out
 
-def main():
+def build_dataset(yf_interval, period, label):
+    """Fetch all symbols at one resolution; return aligned dataset dict."""
     raw = {}
-    for label, sym in {**COMPANIES, **BENCHES}.items():
+    for lbl, sym in {**COMPANIES, **BENCHES}.items():
         try:
-            s = fetch(sym)
+            s = fetch(sym, yf_interval, period)
             if len(s) < 2:
-                print(f"  ! {label} ({sym}): too few rows, skipping"); continue
-            raw[label] = s
-            print(f"  ok {label:<6} {sym:<8} {len(s)} bars")
+                print(f"  ! {lbl} ({sym}): too few rows, skipping"); continue
+            raw[lbl] = s
+            print(f"  ok {lbl:<6} {sym:<8} {len(s)} {label} bars")
         except Exception as e:
-            print(f"  ! {label} ({sym}): {e}")
+            print(f"  ! {lbl} ({sym}): {e}")
 
     if not raw:
-        sys.exit("No data fetched — check your network / symbols.")
+        return None
 
     lo = max(min(d) for d in raw.values())
     hi = min(max(d) for d in raw.values())
@@ -83,28 +78,57 @@ def main():
         return {"o": o, "h": h, "l": l, "c": c}
 
     series, ohlc, benches, bench_ohlc = {}, {}, {}, {}
-    for label, s in raw.items():
+    for lbl, s in raw.items():
         a = aligned(s)
-        if label in COMPANIES:
-            series[label] = a["c"]; ohlc[label] = a
+        if lbl in COMPANIES:
+            series[lbl] = a["c"]; ohlc[lbl] = a
         else:
-            benches[label] = a["c"]; bench_ohlc[label] = a
+            benches[lbl] = a["c"]; bench_ohlc[lbl] = a
+
+    return {
+        "dates": master, "start": master[0], "end": master[-1],
+        "series": series, "ohlc": ohlc,
+        "benches": benches, "benchOhlc": bench_ohlc,
+    }
+
+def main():
+    print("Fetching weekly (full history)…")
+    weekly = build_dataset("1wk", "max", "weekly")
+    if not weekly:
+        sys.exit("Weekly fetch failed entirely.")
+
+    print("\nFetching daily (last 6 months)…")
+    daily = build_dataset("1d", "6mo", "daily")
+    if not daily:
+        print("  Warning: daily fetch failed — widget will use weekly for all horizons.")
+        daily = None
 
     data = {
         "meta": {
             "source": "finance.yahoo.com",
-            "interval": INTERVAL_NAME,
+            "interval": "dual",          # signals new format to index.html
             "generated": datetime.datetime.utcnow().isoformat() + "Z",
-            "start": master[0], "end": master[-1], "ohlc": True,
+            "start": weekly["start"], "end": weekly["end"], "ohlc": True,
         },
-        "dates": master,
-        "series": series, "ohlc": ohlc,
-        "benches": benches, "benchOhlc": bench_ohlc,
+        # Top-level keys kept for backward compat (validReal check in index.html)
+        "dates":     weekly["dates"],
+        "series":    weekly["series"],
+        "ohlc":      weekly["ohlc"],
+        "benches":   weekly["benches"],
+        "benchOhlc": weekly["benchOhlc"],
+        # New dual-resolution sub-objects
+        "weekly": {k: weekly[k] for k in ("dates","series","ohlc","benches","benchOhlc")},
+        "daily":  ({k: daily[k]  for k in ("dates","series","ohlc","benches","benchOhlc")}
+                   if daily else None),
     }
+
     with open("data.json", "w") as f:
         json.dump(data, f, separators=(",", ":"))
-    print(f"\nWrote data.json — {len(master)} {data['meta']['interval']} OHLC bars, "
-          f"{data['meta']['start']} to {data['meta']['end']}")
+
+    w_bars = len(weekly["dates"])
+    d_bars = len(daily["dates"]) if daily else 0
+    print(f"\nWrote data.json — weekly: {w_bars} bars ({weekly['start']} → {weekly['end']})"
+          + (f", daily: {d_bars} bars ({daily['start']} → {daily['end']})" if daily else ""))
 
 if __name__ == "__main__":
     main()
