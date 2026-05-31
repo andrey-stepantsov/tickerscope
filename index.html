@@ -355,11 +355,12 @@ function activeLines(ds){
     lines.push({key:"HBM",label:"HBM",sub:HBM.nm,color:HBM.color,dash:HBM.dash,width:HBM.width,raw:ds.hbm,preIndexed:true,isBench:false,isRef:true});
   return lines;
 }
-function idx100(a){const b=a[0];return a.map(v=>v/b*100);}
+function idx100(a){const b=a.find(v=>v!=null&&isFinite(v));if(!b)return a.map(()=>100);return a.map(v=>v==null?null:v/b*100);}
 function transformLine(line,view){
-  if(view==="raw")return line.preIndexed?idx100(line.raw):line.raw.slice();
-  const ix=idx100(line.raw);
-  return view==="log"?ix.map(v=>Math.log10(v)):ix;
+  let vals;
+  if(view==="raw")vals=line.preIndexed?idx100(line.raw):line.raw.slice();
+  else{const ix=idx100(line.raw);vals=view==="log"?ix.map(v=>v==null?null:Math.log10(v)):ix;}
+  return vals;
 }
 function fmtDate(s){const d=new Date(s);if(isNaN(d))return s;
   return d.toLocaleDateString('en-US',{month:'short'})+" '"+String(d.getFullYear()).slice(-2);}
@@ -398,11 +399,11 @@ function renderLines(W){
   const view=state.view,n=W.n;
   const lines=activeLines(W).map(l=>({...l,vals:transformLine(l,view)}));
   let yMin=Infinity,yMax=-Infinity;const consider=v=>{if(v<yMin)yMin=v;if(v>yMax)yMax=v;};
-  lines.forEach(l=>l.vals.forEach(consider));
+  lines.forEach(l=>l.vals.forEach(v=>{if(v!=null&&isFinite(v))consider(v);}));
   if(yMin===Infinity){yMin=0;yMax=1;}if(yMin===yMax){yMin-=1;yMax+=1;}
   const pad=(yMax-yMin)*0.07;yMin-=pad;yMax+=pad;
   const {xOf,yOf}=drawFrame(yMin,yMax,n,W,view);
-  const build=arr=>{let d="";for(let i=0;i<arr.length;i++){d+=(i?"L":"M")+xOf(i).toFixed(2)+" "+yOf(arr[i]).toFixed(2);}return d;};
+  const build=arr=>{let d="",pen=false;for(let i=0;i<arr.length;i++){const v=arr[i];if(v==null||!isFinite(v)){pen=false;continue;}d+=(pen?"L":"M")+xOf(i).toFixed(2)+" "+yOf(v).toFixed(2);pen=true;}return d;};
   lines.forEach(l=>{
     const attrs={class:"ln",d:build(l.vals),stroke:l.color,"stroke-width":l.width};
     if(l.dash)attrs["stroke-dasharray"]=l.dash; else attrs.opacity="1";
@@ -420,12 +421,13 @@ function renderCandles(W){
   const bars=W.ohlc[key]||[], n=Math.max(0,bars.length-1), base=bars.length?bars[0].c:1;
   const tv=v=> view==="raw"? v : (view==="log"? Math.log10(v/base*100) : v/base*100);
   let yMin=Infinity,yMax=-Infinity;
-  bars.forEach(b=>{const hi=tv(b.h),lo=tv(b.l);if(hi>yMax)yMax=hi;if(lo<yMin)yMin=lo;});
+  bars.forEach(b=>{if(!b||b.h==null||b.l==null)return;const hi=tv(b.h),lo=tv(b.l);if(isFinite(hi)&&hi>yMax)yMax=hi;if(isFinite(lo)&&lo<yMin)yMin=lo;});
   if(yMin===Infinity){yMin=0;yMax=1;}if(yMin===yMax){yMin-=1;yMax+=1;}
   const pad=(yMax-yMin)*0.07;yMin-=pad;yMax+=pad;
   const {xOf,yOf}=drawFrame(yMin,yMax,n,W,view);
   const slot=n>0?PW/n:PW, bw=Math.max(1,Math.min(16,slot*0.6));
   bars.forEach((b,i)=>{
+    if(!b||b.o==null||b.h==null||b.l==null||b.c==null)return;
     const x=xOf(i),up=b.c>=b.o,col=up?GREEN:RED;
     svg.appendChild(el("line",{x1:x,y1:yOf(tv(b.h)),x2:x,y2:yOf(tv(b.l)),stroke:col,"stroke-width":Math.min(1.4,Math.max(.6,bw*0.12))}));
     const yo=yOf(tv(b.o)),yc=yOf(tv(b.c)),top=Math.min(yo,yc),h=Math.max(1,Math.abs(yo-yc));
