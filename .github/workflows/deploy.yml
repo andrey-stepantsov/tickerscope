@@ -1,0 +1,51 @@
+# Build-at-deploy: fetch fresh data, bake it into the published site,
+# deploy straight to GitHub Pages. data.json is NEVER committed to the repo.
+#
+# One-time setup: repo Settings -> Pages -> Build and deployment ->
+#   Source = "GitHub Actions"  (instead of "Deploy from a branch")
+# If you use this workflow, you do NOT also need refresh-data.yml.
+
+name: Build & deploy site
+on:
+  push:
+    branches: [main]            # rebuild whenever you change the app
+  schedule:
+    - cron: "30 6 * * *"        # + refresh data weekly (Mon 06:30 UTC)
+  workflow_dispatch: {}          # + manual "Run workflow" button
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Fetch + bake data into _site
+        run: |
+          python3 fetch_data.py          # writes data.json
+          mkdir -p _site
+          cp index.html data.json _site/  # only ship what the app needs
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
