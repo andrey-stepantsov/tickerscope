@@ -517,10 +517,20 @@ setInterval(tick,1000);tick();
 function validReal(d){return d&&Array.isArray(d.dates)&&d.dates.length>1&&d.series&&d.benches;}
 function isDual(d){return d&&d.weekly&&Array.isArray(d.weekly.dates);}
 function init(){syncControls();buildLegend();applyMode();rebuild();}
-fetch("data.json",{cache:"no-store"})
-  .then(r=>{if(!r.ok)throw new Error("no data.json");return r.json();})
-  .then(d=>{if(!validReal(d))throw new Error("bad");state.real=d;state.mode="real";init();})
-  .catch(()=>{ statusEl.textContent="ERROR · data.json not found"; });
+function loadData(attempt){
+  fetch("data.json",{cache:"no-store"})
+    .then(r=>{if(!r.ok)throw new Error(r.status);return r.json();})
+    .then(d=>{
+      if(!validReal(d))throw new Error("invalid");
+      state.real=d; state.mode="real"; init();
+    })
+    .catch(err=>{
+      if(attempt<2){setTimeout(()=>loadData(attempt+1),3000);return;}
+      statusEl.textContent="ERROR · data.json not found ("+err.message+")";
+      console.error("data.json load failed:",err);
+    });
+}
+loadData(1);
 
 window.addEventListener("resize",()=>{if(tip)tip.style.opacity=0;});
 </script>
