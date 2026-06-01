@@ -216,6 +216,34 @@ const state={
 };
 let current=null;
 
+// ---- OHLC utilities ----
+function barsFromArrays(a){const L=a.c.length,b=new Array(L);
+  for(let i=0;i<L;i++)b[i]={o:a.o[i],h:a.h[i],l:a.l[i],c:a.c[i]};return b;}
+function ohlcFromClose(closes,rng,wicks){
+  // Fallback: synthesise OHLC from close-only data (bodies only, no wicks)
+  const L=closes.length,bars=new Array(L);
+  bars[0]={o:closes[0],h:closes[0],l:closes[0],c:closes[0]};
+  for(let i=1;i<L;i++){const o=closes[i-1],c=closes[i];
+    bars[i]={o,h:Math.max(o,c),l:Math.min(o,c),c};}
+  return bars;
+}
+function compositeOhlc(ohlcMap,tickers){
+  const arrays=tickers.map(tk=>ohlcMap[tk]).filter(a=>Array.isArray(a)&&a.length>1);
+  if(!arrays.length)return [];
+  const L=arrays[0].length,out=new Array(L);
+  for(let i=0;i<L;i++){
+    let so=0,sh=0,sl=0,sc=0,cnt=0;
+    for(const bars of arrays){
+      if(bars.length!==L)continue;
+      const b=bars[i],b0=bars[0];
+      if(!b||b.c==null||!b0||b0.c==null||b0.c===0)continue;
+      const base=b0.c;
+      so+=b.o/base*100;sh+=b.h/base*100;sl+=b.l/base*100;sc+=b.c/base*100;cnt++;
+    }
+    out[i]=cnt?{o:so/cnt,h:sh/cnt,l:sl/cnt,c:sc/cnt}:null;
+  }
+  return out;
+}
 function buildReal(){
   // For short horizons (1M, 3M) use daily bars if available; weekly otherwise.
   const useDailyRanges={"1M":true,"3M":true};
