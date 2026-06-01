@@ -228,23 +228,21 @@ function ohlcFromClose(closes,rng,wicks){
   return bars;
 }
 function compositeOhlc(ohlcMap,tickers){
-  // Returns equal-weight average of each company's OHLC indexed to their
-  // own first valid bar = 100. One common scale, no per-bar base needed.
+  // Equal-weight average of per-ticker OHLC, each indexed to its own
+  // first valid close=100. Output values are in "index points" so
+  // renderCandles can use firstValid.c as base (≈100) like any ticker.
   const arrays=tickers.map(tk=>ohlcMap[tk]).filter(a=>Array.isArray(a)&&a.length>1);
   if(!arrays.length)return [];
   const L=arrays[0].length;
-  // Find each ticker's first valid close to use as its base
-  const bases=arrays.map(bars=>{
-    const fv=bars.find(b=>b&&b.c!=null); return fv?fv.c:null;
-  });
+  const bases=arrays.map(bars=>{const fv=bars.find(b=>b&&b.c!=null);return fv?fv.c:null;});
   const out=new Array(L);
   for(let i=0;i<L;i++){
     let so=0,sh=0,sl=0,sc=0,cnt=0;
     for(let t=0;t<arrays.length;t++){
       const bars=arrays[t],base=bases[t];
-      if(bars.length!==L||!base)continue;
+      if(!base||bars.length!==L)continue;
       const b=bars[i];
-      if(!b||b.c==null)continue;
+      if(!b||b.o==null||b.c==null)continue;
       so+=b.o/base*100;sh+=b.h/base*100;sl+=b.l/base*100;sc+=b.c/base*100;cnt++;
     }
     out[i]=cnt?{o:so/cnt,h:sh/cnt,l:sl/cnt,c:sc/cnt}:null;
@@ -386,8 +384,7 @@ function renderCandles(W){
   if(!state.agg)state.candleKey=key;
   const bars=W.ohlc[key]||[], n=Math.max(0,bars.length-1);
   const firstValid=bars.find(b=>b&&b.c!=null);
-  // CMP is pre-indexed (first valid ≈ 100); treat base=1 so tv() is identity for norm.
-  const base=key==="CMP"?1:(firstValid?firstValid.c:1);
+  const base=firstValid?firstValid.c:100;
   const tv=v=> view==="raw"? v : (view==="log"? Math.log10(v/base*100) : v/base*100);
   let yMin=Infinity,yMax=-Infinity;
   bars.forEach(b=>{if(!b||b.h==null||b.l==null)return;const hi=tv(b.h),lo=tv(b.l);if(isFinite(hi)&&hi>yMax)yMax=hi;if(isFinite(lo)&&lo<yMin)yMin=lo;});
@@ -493,7 +490,10 @@ function buildLegend(){
 function setChg(id,arr){
   const e=document.getElementById("chg-"+id);if(!e)return;
   if(!arr||!arr.length){e.textContent="n/a";e.className="chg";return;}
-  const chg=(arr[arr.length-1]/arr[0]-1)*100;
+  const first=arr.find(v=>v!=null&&isFinite(v)&&v!==0);
+  const last=[...arr].reverse().find(v=>v!=null&&isFinite(v));
+  if(!first||!last){e.textContent="n/a";e.className="chg";return;}
+  const chg=(last/first-1)*100;
   e.textContent=(chg>=0?"+":"")+chg.toFixed(1)+"%";e.className="chg "+(chg>=0?"pos":"neg");
 }
 function updateLegendNumbers(W){
