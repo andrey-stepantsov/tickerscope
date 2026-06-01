@@ -378,6 +378,9 @@ function renderCandles(W){
   if(!W.ohlc[key]||!W.ohlc[key].length){const av=Object.keys(W.ohlc).filter(k=>W.ohlc[k]&&W.ohlc[k].length);key=av[0]||"CMP";}
   if(!state.agg)state.candleKey=key;
   const bars=W.ohlc[key]||[], n=Math.max(0,bars.length-1);
+  console.log("renderCandles key="+key+" bars="+bars.length+" n="+n+" dates="+W.dates?.length);
+  console.log("first 3 bars:",JSON.stringify(bars.slice(0,3)));
+  console.log("last 3 bars:",JSON.stringify(bars.slice(-3)));
   const firstValid=bars.find(b=>b&&b.c!=null), base=firstValid?firstValid.c:1;
   const tv=v=> view==="raw"? v : (view==="log"? Math.log10(v/base*100) : v/base*100);
   let yMin=Infinity,yMax=-Infinity;
