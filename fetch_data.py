@@ -4,7 +4,7 @@ Fetch real price history into data.json.
 Source: Yahoo Finance via yfinance.
 
 Bakes TWO resolutions so the widget can pick the right one per horizon:
-  daily  — last 6 months of 1-day bars  (for 1M and 3M views)
+  daily  — last 12 months of 1-day bars (for 1M and 3M views)
   weekly — full history of 1-week bars  (for 6M, 1Y, 2Y, 3Y, Max views)
 
 Each resolution has its own dates / series / ohlc / benches / benchOhlc.
@@ -102,8 +102,8 @@ def main():
     if not weekly:
         sys.exit("Weekly fetch failed entirely.")
 
-    print("\nFetching daily (last 6 months)…")
-    daily = build_dataset("1d", "6mo", "daily")
+    print("\nFetching daily (last 12 months)…")
+    daily = build_dataset("1d", "1y", "daily")
     if not daily:
         print("  Warning: daily fetch failed — widget will use weekly for all horizons.")
         daily = None

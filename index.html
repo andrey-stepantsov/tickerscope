@@ -377,7 +377,8 @@ function renderCandles(W){
   let key=state.agg?"CMP":state.candleKey;
   if(!W.ohlc[key]||!W.ohlc[key].length){const av=Object.keys(W.ohlc).filter(k=>W.ohlc[k]&&W.ohlc[k].length);key=av[0]||"CMP";}
   if(!state.agg)state.candleKey=key;
-  const bars=(W.ohlc[key]||[]).filter(b=>b!=null), n=Math.max(0,bars.length-1), base=bars.length?bars[0].c:1;
+  const bars=W.ohlc[key]||[], n=Math.max(0,bars.length-1);
+  const firstValid=bars.find(b=>b&&b.c!=null), base=firstValid?firstValid.c:1;
   const tv=v=> view==="raw"? v : (view==="log"? Math.log10(v/base*100) : v/base*100);
   let yMin=Infinity,yMax=-Infinity;
   bars.forEach(b=>{if(!b||b.h==null||b.l==null)return;const hi=tv(b.h),lo=tv(b.l);if(isFinite(hi)&&hi>yMax)yMax=hi;if(isFinite(lo)&&lo<yMin)yMin=lo;});
