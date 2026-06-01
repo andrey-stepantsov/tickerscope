@@ -26,10 +26,13 @@ COMPANIES = {
 }
 BENCHES = {"SPX": "^GSPC", "DJIA": "^DJI"}
 
-def fetch(ticker_sym, yf_interval, period):
+def fetch(ticker_sym, yf_interval, period, start=None):
     """Return {date_str: {o,h,l,c}} from Yahoo Finance."""
     t = yf.Ticker(ticker_sym)
-    hist = t.history(period=period, interval=yf_interval, auto_adjust=True)
+    if start:
+        hist = t.history(start=start, interval=yf_interval, auto_adjust=True)
+    else:
+        hist = t.history(period=period, interval=yf_interval, auto_adjust=True)
     if hist.empty:
         return {}
     out = {}
@@ -51,7 +54,7 @@ def build_dataset(yf_interval, period, label):
     raw = {}
     for lbl, sym in {**COMPANIES, **BENCHES}.items():
         try:
-            s = fetch(sym, yf_interval, period)
+            s = fetch(sym, yf_interval, period, start=("1990-01-01" if yf_interval=="1wk" else None))
             if len(s) < 2:
                 print(f"  ! {lbl} ({sym}): too few rows, skipping"); continue
             raw[lbl] = s
