@@ -72,14 +72,19 @@ def build_dataset(yf_interval, period, label):
     master = sorted({d for s in raw.values() for d in s if lo <= d <= hi})
 
     def aligned(s):
-        o, h, l, c, last = [], [], [], [], None
+        # Close is forward-filled for line-chart continuity.
+        # OHLC is null on missing dates — no forward-fill — so candle
+        # charts never show duplicate/phantom bars on holidays.
+        o, h, l, c, last_c = [], [], [], [], None
         for d in master:
-            if d in s: last = s[d]
-            if last:
-                o.append(round(last["o"], 4)); h.append(round(last["h"], 4))
-                l.append(round(last["l"], 4)); c.append(round(last["c"], 4))
+            if d in s:
+                bar = s[d]
+                last_c = round(bar["c"], 4)
+                o.append(round(bar["o"], 4)); h.append(round(bar["h"], 4))
+                l.append(round(bar["l"], 4)); c.append(last_c)
             else:
-                o.append(None); h.append(None); l.append(None); c.append(None)
+                o.append(None); h.append(None); l.append(None)
+                c.append(last_c)  # forward-fill close only
         return {"o": o, "h": h, "l": l, "c": c}
 
     series, ohlc, benches, bench_ohlc = {}, {}, {}, {}
