@@ -13,7 +13,7 @@
     --ink:#e9e4d8; --ink-dim:#9aa0ad; --ink-faint:#5b6170;
     --line:#272c38; --line-soft:#1d212b;
     --gold:#e8b84b; --gold-dim:#8a7434;
-    --green:#5fd0a0; --red:#e4685f; --hbm:#ff79c6;
+    --green:#5fd0a0; --red:#e4685f;
     --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
     --sans:'IBM Plex Sans',-apple-system,system-ui,sans-serif;
     --serif:'Fraunces',Georgia,'Times New Roman',serif;
@@ -88,7 +88,6 @@
   .controls-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}
   .controls-head h3{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint)}
   .note{font-size:11.5px;color:var(--ink-faint);font-family:var(--mono);margin-top:2px}
-  #paramPanel.locked{opacity:.38;pointer-events:none;filter:saturate(.4)}
   .ctrl{margin-bottom:18px}
   .ctrl .lab{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
   .ctrl .lab span{font-size:12.5px;color:var(--ink-dim)}
@@ -98,8 +97,6 @@
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;
     background:var(--ink);border:3px solid var(--gold);box-shadow:0 2px 6px rgba(0,0,0,.5);cursor:pointer}
   input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--ink);border:3px solid var(--gold);cursor:pointer}
-  .seed-row{display:flex;gap:8px;align-items:stretch}
-  .seed-row input[type=number]{flex:1;min-width:0;background:#0f1219;border:1px solid var(--line);color:var(--ink);
     font-family:var(--mono);font-size:13px;border-radius:8px;padding:9px 11px}
   .seed-row input:focus{outline:none;border-color:var(--gold-dim)}
   .btn{font-family:var(--mono);font-size:12px;letter-spacing:.04em;border:1px solid var(--gold-dim);background:var(--gold);
@@ -121,7 +118,7 @@
     <div class="brand">
       <div class="eyebrow">Markets Lab · Browser-side</div>
       <h1>The Index <em>Lab</em></h1>
-      <p>Seven equities versus the S&amp;P 500, the Dow, and a synthetic HBM-spot index. Overlay lines or view a single instrument as candlesticks; combine the basket into one equal-weight index; scrub horizons from 1M to 3Y. Real daily/weekly history from <code>data.json</code> when present, else a synthetic (GBM) sandbox.</p>
+      <p>Seven equities versus the S&amp;P 500 and the Dow. Overlay lines or view a single instrument as candlesticks; combine the basket into one equal-weight index; scrub horizons from 1M to 3Y.</p>
     </div>
     <div class="ticker-clock">
       <div><b id="clock">—</b></div>
@@ -168,50 +165,18 @@
   <div class="card controls">
     <div class="controls-head">
       <div>
-        <h3>Data &amp; parameters</h3>
+        <h3>View options</h3>
         <div class="note" id="modeNote"></div>
       </div>
-      <div class="seg" id="modeSeg">
-        <button data-mode="real" id="mReal" disabled>Real data</button>
-        <button data-mode="synthetic" id="mSynth" class="on">Synthetic</button>
-      </div>
-    </div>
-    <div id="paramPanel">
-      <div class="grid" style="grid-template-columns:repeat(3,1fr);gap:24px">
-        <div class="ctrl">
-          <div class="lab"><span>Trading days</span><b id="daysVal">756</b></div>
-          <input type="range" id="days" min="60" max="1260" step="6" value="756">
-        </div>
-        <div class="ctrl">
-          <div class="lab"><span>Volatility ×</span><b id="volVal">1.0</b></div>
-          <input type="range" id="vol" min="0.3" max="2.6" step="0.1" value="1">
-        </div>
-        <div class="ctrl">
-          <div class="lab"><span>Drift ×</span><b id="driftVal">1.0</b></div>
-          <input type="range" id="drift" min="-1" max="2.5" step="0.1" value="1">
-        </div>
-      </div>
-      <div class="grid" style="grid-template-columns:1fr 1fr;gap:24px;margin-top:4px">
-        <div class="ctrl" style="margin:0">
-          <div class="lab"><span>Random seed</span><b>deterministic</b></div>
-          <div class="seed-row">
-            <input type="number" id="seed" value="42" min="1" max="999999">
-            <button class="btn" id="reroll">⟳ New</button>
-          </div>
-        </div>
-        <div class="ctrl" style="margin:0">
-          <div class="lab"><span>&nbsp;</span><b>&nbsp;</b></div>
-          <div class="btn-row">
-            <button class="btn ghost" id="showAll">Show all</button>
-            <button class="btn ghost" id="benchOnly">Solo indices</button>
-          </div>
-        </div>
+      <div class="btn-row">
+        <button class="btn ghost" id="showAll">Show all</button>
+        <button class="btn ghost" id="benchOnly">Solo indices</button>
       </div>
     </div>
   </div>
 
   <footer>
-    <div class="disclaim">Real equity/index data via Yahoo Finance (baked into data.json, incl. OHLC); daily bars for 1M–3M views, weekly bars for 6M–Max. Synthetic series via GBM. HBM is always synthetic — no free real feed exists. Synthetic candles derive wicks from the close path; real candles use baked OHLC. Combined lines are equal-weight, indexed to 100; horizon views re-base to the window start. Educational only — not investment advice.</div>
+    <div class="disclaim">Real equity/index data via Yahoo Finance (baked into data.json, incl. OHLC); daily bars for 1M–3M views, weekly bars for 6M–Max. Combined lines are equal-weight, indexed to 100; horizon views re-base to the window start. Educational only — not investment advice.</div>
     <div style="text-align:right">
       <div id="dataStamp">—</div>
       <div style="color:var(--ink-faint);opacity:.7">v1.6 · zero runtime deps · GitHub Pages-ready</div>
@@ -236,83 +201,21 @@ const BENCHES=[
   {tk:"SPX",  nm:"S&P 500",   px:5000,  mu:0.08, sig:0.15, color:"#f4eee0", dash:"8 6"},
   {tk:"DJIA", nm:"Dow Jones", px:38000, mu:0.07, sig:0.13, color:"#aeb6c6", dash:"2 6"},
 ];
-const HBM={tk:"HBM", nm:"HBM spot (synthetic)", px:25, mu:0.16, sig:0.22, color:"#ff79c6", dash:"4 4", width:2.2};
 const COMPOSITE={
   CMP:{label:"Companies", sub:"equal-weight · "+UNIVERSE.length+" names", color:"#e8b84b", dash:null, width:2.9},
   BMK:{label:"S&P + Dow",  sub:"equal-weight benchmark",                   color:"#aeb6c6", dash:"8 6", width:2.6},
 };
-const INSTR={};UNIVERSE.forEach(c=>INSTR[c.tk]=c);BENCHES.forEach(c=>INSTR[c.tk]=c);INSTR.HBM=HBM;
-const RANGE_MONTHS={"1M":1,"3M":3,"6M":6,"1Y":12,"3Y":36};
-const N_TRADING_YR=252;
+const INSTR={};UNIVERSE.forEach(c=>INSTR[c.tk]=c);BENCHES.forEach(c=>INSTR[c.tk]=c);const RANGE_MONTHS={"1M":1,"3M":3,"6M":6,"1Y":12,"3Y":36};
 
 const state={
-  mode:"synthetic", real:null, view:"norm", agg:false, range:"Max",
+  mode:"real", real:null, view:"norm", agg:false, range:"Max",
   chart:"lines", candleKey:"NVDA",
-  days:756, volMul:1, driftMul:1, seed:42,
   visible:Object.fromEntries(UNIVERSE.map(c=>[c.tk,true])),
   benchVisible:Object.fromEntries(BENCHES.map(c=>[c.tk,true])),
-  aggVisible:{CMP:true,BMK:true}, hbmVisible:true,
+  aggVisible:{CMP:true,BMK:true},
 };
 let current=null;
 
-// ---- synthetic engine ----
-function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
-  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
-function makeGauss(rng){let spare=null;return function(){if(spare!==null){const s=spare;spare=null;return s;}
-  let u=0,v=0,s=0;do{u=rng()*2-1;v=rng()*2-1;s=u*u+v*v;}while(s>=1||s===0);
-  const m=Math.sqrt(-2*Math.log(s)/s);spare=v*m;return u*m;};}
-function gbmPath(rng,S0,mu,sigma,days){
-  const g=makeGauss(rng),dt=1/N_TRADING_YR,sq=Math.sqrt(dt);
-  const out=new Array(days+1);out[0]=S0;let s=S0;
-  for(let i=1;i<=days;i++){s=s*Math.exp((mu-0.5*sigma*sigma)*dt+sigma*sq*g());out[i]=s;}
-  return out;
-}
-// OHLC bars from a close path. wicks=true -> seeded synthetic highs/lows; false -> bodies only.
-function ohlcFromClose(closes,rng,wicks){
-  const L=closes.length,bars=new Array(L);
-  bars[0]={o:closes[0],h:closes[0],l:closes[0],c:closes[0]};
-  const g=wicks?makeGauss(rng):null;
-  for(let i=1;i<L;i++){
-    const o=closes[i-1],c=closes[i];let hi=Math.max(o,c),lo=Math.min(o,c);
-    if(wicks){const base=(hi+lo)/2,body=Math.abs(c-o);
-      hi+=Math.abs(g())*base*0.012+Math.abs(g())*body*0.35;
-      lo-=Math.abs(g())*base*0.012+Math.abs(g())*body*0.35;}
-    bars[i]={o,h:hi,l:lo,c};
-  }
-  return bars;
-}
-function barsFromArrays(a){const L=a.c.length,b=new Array(L);
-  for(let i=0;i<L;i++)b[i]={o:a.o[i],h:a.h[i],l:a.l[i],c:a.c[i]};return b;}
-
-function compositeOhlc(ohlcMap,tickers){
-  // Equal-weight average of indexed OHLC bars (each company indexed to its own bar[0].c=100)
-  const arrays=tickers.map(tk=>ohlcMap[tk]).filter(a=>Array.isArray(a)&&a.length>1);
-  if(!arrays.length)return [];
-  const L=arrays[0].length,out=new Array(L);
-  for(let i=0;i<L;i++){
-    let so=0,sh=0,sl=0,sc=0,cnt=0;
-    for(const bars of arrays){
-      if(bars.length!==L)continue;
-      const b=bars[i],b0=bars[0];
-      if(!b||b.c==null||!b0||b0.c==null||b0.c===0)continue;
-      const base=b0.c;
-      so+=b.o/base*100;sh+=b.h/base*100;sl+=b.l/base*100;sc+=b.c/base*100;cnt++;
-    }
-    out[i]=cnt?{o:so/cnt,h:sh/cnt,l:sl/cnt,c:sc/cnt}:null;
-  }
-  return out;
-}
-function buildSynthetic(){
-  const days=state.days,companies={},benches={},ohlc={};
-  UNIVERSE.forEach((c,idx)=>{const cl=gbmPath(mulberry32(state.seed*1000+idx*97+13),c.px,c.mu*state.driftMul,c.sig*state.volMul,days);
-    companies[c.tk]=cl;ohlc[c.tk]=ohlcFromClose(cl,mulberry32(state.seed*1000+idx*97+555),true);});
-  BENCHES.forEach((c,idx)=>{const cl=gbmPath(mulberry32(state.seed*1000+700+idx*53),c.px,c.mu*state.driftMul,c.sig*state.volMul,days);
-    benches[c.tk]=cl;ohlc[c.tk]=ohlcFromClose(cl,mulberry32(state.seed*1000+770+idx),true);});
-  const hbm=gbmPath(mulberry32(state.seed*1000+911),HBM.px,HBM.mu*state.driftMul,HBM.sig*state.volMul,days);
-  ohlc.HBM=ohlcFromClose(hbm,mulberry32(state.seed*1000+912),true);
-  ohlc.CMP=compositeOhlc(ohlc,UNIVERSE.map(c=>c.tk));
-  return {n:days,dates:null,companies,benches,hbm,ohlc};
-}
 function buildReal(){
   // For short horizons (1M, 3M) use daily bars if available; weekly otherwise.
   const useDailyRanges={"1M":true,"3M":true};
@@ -325,20 +228,17 @@ function buildReal(){
   BENCHES.forEach(c=>{if(Array.isArray(R.benches[c.tk])){benches[c.tk]=R.benches[c.tk];
     ohlc[c.tk]=(R.benchOhlc&&R.benchOhlc[c.tk])?barsFromArrays(R.benchOhlc[c.tk]):ohlcFromClose(R.benches[c.tk],null,false);}});
   const days=R.dates.length-1;
-  const hbm=gbmPath(mulberry32(4242),HBM.px,HBM.mu,HBM.sig,days);
-  ohlc.HBM=ohlcFromClose(hbm,mulberry32(4243),true);
   ohlc.CMP=compositeOhlc(ohlc,UNIVERSE.map(c=>c.tk));
-  return {n:days,dates:R.dates,companies,benches,hbm,ohlc};
+  return {n:days,dates:R.dates,companies,benches,ohlc};
 }
-function rebuild(){ current=(state.mode==="real"&&state.real)?buildReal():buildSynthetic(); render(); }
+function rebuild(){ if(state.real)current=buildReal(); render(); }
 
 // ---- horizon window ----
 function windowPointCount(){
   if(state.range==="Max")return Infinity;
   let perMonth;
-  if(!current.dates){perMonth=21;}                          // synthetic
-  else if(state.realRes==="daily"){perMonth=21;}            // ~21 trading days/month
-  else{perMonth=4.33;}                                      // ~4.33 weeks/month
+  if(state.realRes==="daily"){perMonth=21;}  // ~21 trading days/month
+  else{perMonth=4.33;}                       // ~4.33 weeks/month
   return Math.max(2,RANGE_MONTHS[state.range]*perMonth);
 }
 function windowedCurrent(){
@@ -351,7 +251,7 @@ function windowedCurrent(){
   for(const k in current.benches)benches[k]=sl(current.benches[k]);
   for(const k in current.ohlc)ohlc[k]=current.ohlc[k].slice(i0);
   return {n:(L-i0)-1, dates:current.dates?current.dates.slice(i0):null,
-          companies, benches, hbm:sl(current.hbm), ohlc, dayOffset:i0};
+          companies, benches, ohlc, dayOffset:i0};
 }
 
 // ---- composites & line model ----
@@ -371,8 +271,6 @@ function activeLines(ds){
     UNIVERSE.forEach(c=>{const a=ds.companies[c.tk];if(state.visible[c.tk]&&a)lines.push({key:c.tk,label:c.tk,sub:c.nm,color:c.color,dash:null,width:1.8,raw:a,preIndexed:false,isBench:false});});
     BENCHES.forEach(c=>{const a=ds.benches[c.tk];if(state.benchVisible[c.tk]&&a)lines.push({key:c.tk,label:c.tk,sub:c.nm,color:c.color,dash:c.dash,width:2.5,raw:a,preIndexed:true,isBench:true});});
   }
-  if(state.hbmVisible&&ds.hbm&&ds.hbm.length>1)
-    lines.push({key:"HBM",label:"HBM",sub:HBM.nm,color:HBM.color,dash:HBM.dash,width:HBM.width,raw:ds.hbm,preIndexed:true,isBench:false,isRef:true});
   return lines;
 }
 function idx100(a){const b=a.find(v=>v!=null&&isFinite(v));if(!b)return a.map(()=>100);return a.map(v=>v==null?null:v/b*100);}
@@ -516,15 +414,11 @@ function chipEl(opts){
     <div class="chg" id="chg-${opts.id}">—</div>`;
   chip.onclick=opts.onclick;return chip;
 }
-function hbmChip(){
-  return chipEl({cls:" bench"+(state.hbmVisible?"":" off"),color:HBM.color,dash:HBM.dash,tk:"HBM",nm:HBM.nm,id:"HBM",
-    onclick:()=>{state.hbmVisible=!state.hbmVisible;buildLegend();render();}});
-}
 function buildLegend(){
   legend.innerHTML="";
   if(state.chart==="candles"){
     const h=document.createElement("h3");h.textContent="Candlestick · pick one";legend.appendChild(h);
-    const all=[...UNIVERSE,...BENCHES,HBM];
+    const all=[...UNIVERSE,...BENCHES];
     all.forEach(c=>legend.appendChild(chipEl({
       cls:(c.dash?" bench":"")+(state.candleKey===c.tk?" sel":""),
       color:c.color,dash:c.dash||null,tk:c.tk,nm:c.nm,id:c.tk,
@@ -537,7 +431,6 @@ function buildLegend(){
       onclick:()=>{state.aggVisible.CMP=!state.aggVisible.CMP;buildLegend();render();}}));
     legend.appendChild(chipEl({cls:" bench"+(state.aggVisible.BMK?"":" off"),color:COMPOSITE.BMK.color,dash:COMPOSITE.BMK.dash,tk:COMPOSITE.BMK.label,nm:COMPOSITE.BMK.sub,id:"BMK",
       onclick:()=>{state.aggVisible.BMK=!state.aggVisible.BMK;buildLegend();render();}}));
-    legend.appendChild(hbmChip());
     const note=document.createElement("div");note.className="constit";note.innerHTML="Basket: "+UNIVERSE.map(c=>c.tk).join(" · ");legend.appendChild(note);
     return;
   }
@@ -547,8 +440,6 @@ function buildLegend(){
   const h2=document.createElement("h3");h2.className="sub";h2.textContent="Benchmarks";legend.appendChild(h2);
   BENCHES.forEach(c=>legend.appendChild(chipEl({cls:" bench"+(state.benchVisible[c.tk]?"":" off"),color:c.color,dash:c.dash,tk:c.tk,nm:c.nm,id:c.tk,
     onclick:()=>{state.benchVisible[c.tk]=!state.benchVisible[c.tk];buildLegend();render();}})));
-  const h3=document.createElement("h3");h3.className="sub";h3.textContent="Reference";legend.appendChild(h3);
-  legend.appendChild(hbmChip());
 }
 function setChg(id,arr){
   const e=document.getElementById("chg-"+id);if(!e)return;
@@ -558,7 +449,7 @@ function setChg(id,arr){
 }
 function updateLegendNumbers(W){
   if(state.chart==="candles"){
-    [...UNIVERSE.map(c=>c.tk),...BENCHES.map(c=>c.tk),"HBM"].forEach(id=>{const b=W.ohlc[id];setChg(id,b?b.map(x=>x.c):null);});
+    [...UNIVERSE.map(c=>c.tk),...BENCHES.map(c=>c.tk)].forEach(id=>{const b=W.ohlc[id];setChg(id,b?b.map(x=>x.c):null);});
     return;
   }
   if(state.agg){
@@ -568,24 +459,10 @@ function updateLegendNumbers(W){
     UNIVERSE.forEach(c=>setChg(c.tk,W.companies[c.tk]));
     BENCHES.forEach(c=>setChg(c.tk,W.benches[c.tk]));
   }
-  setChg("HBM",W.hbm);
 }
 
 // ---- controls ----
-function setSlideFill(input){const min=+input.min,max=+input.max,val=+input.value;input.style.setProperty("--p",((val-min)/(max-min)*100)+"%");}
-const daysIn=document.getElementById("days"),volIn=document.getElementById("vol"),driftIn=document.getElementById("drift"),seedIn=document.getElementById("seed");
-function syncLabels(){
-  document.getElementById("daysVal").textContent=state.days;
-  document.getElementById("volVal").textContent=state.volMul.toFixed(1);
-  document.getElementById("driftVal").textContent=state.driftMul.toFixed(1);
-  [daysIn,volIn,driftIn].forEach(setSlideFill);
-}
-daysIn.oninput=()=>{state.days=+daysIn.value;syncLabels();rebuild();};
-volIn.oninput=()=>{state.volMul=+volIn.value;syncLabels();rebuild();};
-driftIn.oninput=()=>{state.driftMul=+driftIn.value;syncLabels();rebuild();};
-seedIn.onchange=()=>{state.seed=Math.max(1,+seedIn.value||1);rebuild();};
-document.getElementById("reroll").onclick=()=>{state.seed=Math.floor(Math.random()*999999)+1;seedIn.value=state.seed;rebuild();};
-document.getElementById("showAll").onclick=()=>{UNIVERSE.forEach(c=>state.visible[c.tk]=true);BENCHES.forEach(c=>state.benchVisible[c.tk]=true);state.aggVisible={CMP:true,BMK:true};state.hbmVisible=true;buildLegend();render();};
+document.getElementById("showAll").onclick=()=>{UNIVERSE.forEach(c=>state.visible[c.tk]=true);BENCHES.forEach(c=>state.benchVisible[c.tk]=true);state.aggVisible={CMP:true,BMK:true};buildLegend();render();};
 document.getElementById("benchOnly").onclick=()=>{
   if(state.agg){state.aggVisible={CMP:false,BMK:true};}
   else{UNIVERSE.forEach(c=>state.visible[c.tk]=false);BENCHES.forEach(c=>state.benchVisible[c.tk]=true);}
@@ -597,7 +474,7 @@ function setView(v){state.view=v;document.querySelectorAll("#viewSeg button").fo
 function setChartTitle(){
   document.getElementById("chartTitle").textContent =
     state.chart==="candles" ? (state.agg ? "Companies composite · candlesticks" : (state.candleKey+" · candlesticks"))
-    : state.agg ? "Basket vs market vs HBM · combined" : "Cumulative performance";
+    : state.agg ? "Basket vs market · combined" : "Cumulative performance";
 }
 function syncControls(){
   const candle=state.chart==="candles";
@@ -623,37 +500,27 @@ document.getElementById("chartSeg").addEventListener("click",e=>{
 });
 
 // ---- mode ----
-const modeNote=document.getElementById("modeNote"),statusEl=document.getElementById("status"),paramPanel=document.getElementById("paramPanel");
+const modeNote=document.getElementById("modeNote"),statusEl=document.getElementById("status");
 function applyMode(){
-  const real=state.mode==="real"&&state.real;
-  document.getElementById("mReal").classList.toggle("on",real);
-  document.getElementById("mSynth").classList.toggle("on",!real);
-  paramPanel.classList.toggle("locked",!!real);
-  [daysIn,volIn,driftIn,seedIn,document.getElementById("reroll")].forEach(x=>x.disabled=!!real);
-  if(real){
+  if(state.real){
     const m=state.real.meta;
     statusEl.textContent="REAL · "+m.source;
     const resLabel=state.realRes||m.interval;
-    modeNote.textContent=resLabel+" OHLC · "+m.start+" → "+m.end+" · sim off · HBM synthetic";
+    modeNote.textContent=resLabel+" OHLC · "+m.start+" → "+m.end;
     document.getElementById("dataStamp").textContent="Data as of "+fmtStamp(m.generated)+" · "+resLabel;
-  }else{
-    statusEl.textContent="SYNTHETIC · seeded RNG";
-    modeNote.textContent=state.real?"Geometric Brownian motion sandbox":"data.json not found — synthetic only";
-    document.getElementById("dataStamp").textContent="Synthetic · generated in-browser";
   }
 }
-document.getElementById("modeSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b||b.disabled)return;state.mode=b.dataset.mode;applyMode();rebuild();});
 
 function tick(){const d=new Date();document.getElementById("clock").textContent=d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"});}
 setInterval(tick,1000);tick();
 
 function validReal(d){return d&&Array.isArray(d.dates)&&d.dates.length>1&&d.series&&d.benches;}
 function isDual(d){return d&&d.weekly&&Array.isArray(d.weekly.dates);}
-function init(){syncLabels();syncControls();buildLegend();applyMode();rebuild();}
+function init(){syncControls();buildLegend();applyMode();rebuild();}
 fetch("data.json",{cache:"no-store"})
   .then(r=>{if(!r.ok)throw new Error("no data.json");return r.json();})
-  .then(d=>{if(!validReal(d))throw new Error("bad");state.real=d;state.mode="real";document.getElementById("mReal").disabled=false;init();})
-  .catch(()=>{state.real=null;state.mode="synthetic";init();});
+  .then(d=>{if(!validReal(d))throw new Error("bad");state.real=d;state.mode="real";init();})
+  .catch(()=>{ statusEl.textContent="ERROR · data.json not found"; });
 
 window.addEventListener("resize",()=>{if(tip)tip.style.opacity=0;});
 </script>
