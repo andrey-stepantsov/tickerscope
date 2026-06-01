@@ -65,7 +65,9 @@ def build_dataset(yf_interval, period, label):
     if not raw:
         return None
 
-    lo = max(min(d) for d in raw.values())
+    # Use the EARLIEST start of any symbol and LATEST common end.
+    # Symbols with later starts will forward-fill from their first available bar.
+    lo = min(min(d) for d in raw.values())
     hi = min(max(d) for d in raw.values())
     master = sorted({d for s in raw.values() for d in s if lo <= d <= hi})
 
