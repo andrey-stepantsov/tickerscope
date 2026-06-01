@@ -176,7 +176,7 @@
   </div>
 
   <footer>
-    <div class="disclaim">Real equity/index data via Yahoo Finance (baked into data.json, incl. OHLC); daily bars for 1M–3M views, weekly bars for 6M–Max. Combined lines are equal-weight, indexed to 100; horizon views re-base to the window start. Educational only — not investment advice.</div>
+    <div class="disclaim">Real equity/index data via Yahoo Finance (baked into data.json, incl. OHLC); daily bars for 1M–6M views, weekly bars for 1Y–Max. Combined lines are equal-weight, indexed to 100; horizon views re-base to the window start. Educational only — not investment advice.</div>
     <div style="text-align:right">
       <div id="dataStamp">—</div>
       <div style="color:var(--ink-faint);opacity:.7">v1.6 · zero runtime deps · GitHub Pages-ready</div>
@@ -246,7 +246,7 @@ function compositeOhlc(ohlcMap,tickers){
 }
 function buildReal(){
   // For short horizons (1M, 3M) use daily bars if available; weekly otherwise.
-  const useDailyRanges={"1M":true,"3M":true};
+  const useDailyRanges={"1M":true,"3M":true,"6M":true};
   const wantDaily=useDailyRanges[state.range]&&isDual(state.real)&&state.real.daily;
   const R=wantDaily?state.real.daily:(isDual(state.real)?state.real.weekly:state.real);
   state.realRes=wantDaily?"daily":"weekly";
