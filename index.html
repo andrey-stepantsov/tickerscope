@@ -256,7 +256,6 @@ function buildReal(){
   BENCHES.forEach(c=>{if(Array.isArray(R.benches[c.tk])){benches[c.tk]=R.benches[c.tk];
     ohlc[c.tk]=(R.benchOhlc&&R.benchOhlc[c.tk])?barsFromArrays(R.benchOhlc[c.tk]):ohlcFromClose(R.benches[c.tk],null,false);}});
   const days=R.dates.length-1;
-  ohlc.CMP=compositeOhlc(ohlc,UNIVERSE.map(c=>c.tk));
   return {n:days,dates:R.dates,companies,benches,ohlc};
 }
 function rebuild(){ if(state.real)current=buildReal(); render(); }
@@ -278,6 +277,7 @@ function windowedCurrent(){
   for(const k in current.companies)companies[k]=sl(current.companies[k]);
   for(const k in current.benches)benches[k]=sl(current.benches[k]);
   for(const k in current.ohlc)ohlc[k]=current.ohlc[k].slice(i0);
+  ohlc.CMP=compositeOhlc(ohlc,UNIVERSE.map(c=>c.tk));
   return {n:(L-i0)-1, dates:current.dates?current.dates.slice(i0):null,
           companies, benches, ohlc, dayOffset:i0};
 }
