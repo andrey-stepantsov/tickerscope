@@ -10,7 +10,7 @@ on:
   push:
     branches: [main]            # rebuild whenever you change the app
   schedule:
-    - cron: "30 6 * * *"        # + refresh data daily (06:30 UTC)
+    - cron: "0 21 * * 1-5"      # weekdays at 21:00 UTC (after US market close at 20:00 UTC)
   workflow_dispatch: {}          # + manual "Run workflow" button
 
 permissions:
